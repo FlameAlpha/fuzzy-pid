@@ -3,7 +3,7 @@
 #### 介绍
 模糊PID项目
 
-···c
+```c
 #include "stdio.h"
 #include "fuzzyPID.h"
 
