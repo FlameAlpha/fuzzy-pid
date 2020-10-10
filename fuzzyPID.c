@@ -203,7 +203,7 @@ void moc(const float *membership, const unsigned int *output, const unsigned int
 
 // Defuzzifier
 void df(const float *membership, const unsigned int *output, const unsigned int *count, struct fuzzy *fuzzy_struct,
-        int df_type) {
+        unsigned int df_type) {
     moc(membership, output, count, fuzzy_struct);
 }
 
