@@ -175,8 +175,7 @@ void moc(const float *membership, const unsigned int *output, const unsigned int
 
     for (int i = 0; i < count[0]; ++i) {
         for (int j = 0; j < count[1]; ++j) {
-            denominator[i * count[1] + j] = membership[i] * membership[count[0] +
-                                                                       j]; // fo(membership[i], membership[count[0] + j], fuzzy_struct->fo_type);
+            denominator[i * count[1] + j] = membership[i] * membership[count[0] + j]; // fo(membership[i], membership[count[0] + j], fuzzy_struct->fo_type);
             denominator_count += denominator[i * count[1] + j];
         }
     }
@@ -249,7 +248,7 @@ void fuzzy_control(float e, float de, struct fuzzy *fuzzy_struct) {
     }
 #endif
 
-    df(membership, output, count, fuzzy_struct, 0);
+    df(membership, output, count, fuzzy_struct, fuzzy_struct->df_type);
 }
 
 struct PID *raw_fuzzy_pid_init(float kp, float ki, float kd, float integral_limit, float dead_zone,
