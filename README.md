@@ -5,7 +5,6 @@
 
 示例代码
 ```c
-#include "stdio.h"
 #include "fuzzyPID.h"
 
 #define DOF 6
