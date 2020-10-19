@@ -113,30 +113,44 @@ float mf(float x, unsigned int mf_type, int *params) {
 }
 
 // Union operator
-float or(float a, float b, unsigned int type) {
+float or(
+        float a,
+        float b,
+        unsigned int type
+) {
     if (type == 1) {
-        // algebraic sum
-        return a + b - a * b;
+// algebraic sum
+        return a + b -
+               a * b;
     } else if (type == 2) {
-        // bounded sum
+// bounded sum
         return fminf(1, a + b);
     } else {
-        // fuzzy union
-        return fmaxf(a, b);
+// fuzzy union
+        return
+                fmaxf(a, b
+                );
     }
 }
 
 // Intersection operator
-float and(float a, float b, unsigned int type) {
+float and(
+        float a,
+        float b,
+        unsigned int type
+) {
     if (type == 1) {
-        // algebraic product
-        return a * b;
+// algebraic product
+        return
+                a * b;
     } else if (type == 2) {
-        // bounded product
+// bounded product
         return fmaxf(0, a + b - 1);
     } else {
-        // fuzzy intersection
-        return fminf(a, b);
+// fuzzy intersection
+        return
+                fminf(a, b
+                );
     }
 }
 
@@ -175,7 +189,8 @@ void moc(const float *membership, const unsigned int *output, const unsigned int
 
     for (int i = 0; i < count[0]; ++i) {
         for (int j = 0; j < count[1]; ++j) {
-            denominator[i * count[1] + j] = membership[i] * membership[count[0] + j]; // fo(membership[i], membership[count[0] + j], fuzzy_struct->fo_type);
+            denominator[i * count[1] + j] = membership[i] * membership[count[0] +
+                                                                       j]; // fo(membership[i], membership[count[0] + j], fuzzy_struct->fo_type);
             denominator_count += denominator[i * count[1] + j];
         }
     }
@@ -203,7 +218,7 @@ void moc(const float *membership, const unsigned int *output, const unsigned int
 
 // Defuzzifier
 void df(const float *membership, const unsigned int *output, const unsigned int *count, struct fuzzy *fuzzy_struct,
-        unsigned int df_type) {
+        int df_type) {
     moc(membership, output, count, fuzzy_struct);
 }
 
@@ -248,7 +263,7 @@ void fuzzy_control(float e, float de, struct fuzzy *fuzzy_struct) {
     }
 #endif
 
-    df(membership, output, count, fuzzy_struct, fuzzy_struct->df_type);
+    df(membership, output, count, fuzzy_struct, 0);
 }
 
 struct PID *raw_fuzzy_pid_init(float kp, float ki, float kd, float integral_limit, float dead_zone,
@@ -489,13 +504,21 @@ fuzzy_vector_pid_init(float params[][pid_params_count], float delta_k, unsigned 
     return pid;
 }
 
-int fuzzy_pid_motor_pwd_output(float real, float idea, struct PID *pid) {
-    return limit(pid->output_middle_value + fuzzy_pid_control(real, idea, pid), pid->output_max_value,
-                 pid->output_min_value);
+int direct_control(int zero_value, int offset_value, bool direct) {
+    if (direct == true) {
+        return zero_value + offset_value;
+    } else {
+        return zero_value - offset_value;
+    }
 }
 
-int pid_motor_pwd_output(float real, float idea, struct PID *pid) {
-    return limit(pid->output_middle_value + pid_control(real, idea, pid), pid->output_max_value,
+int fuzzy_pid_motor_pwd_output(float real, float idea, bool direct, struct PID *pid) {
+    return limit(direct_control(pid->output_middle_value, fuzzy_pid_control(real, idea, pid), direct),
+                 pid->output_max_value, pid->output_min_value);
+}
+
+int pid_motor_pwd_output(float real, float idea, bool direct, struct PID *pid) {
+    return limit(direct_control(pid->output_middle_value, pid_control(real, idea, pid), direct), pid->output_max_value,
                  pid->output_min_value);
 }
 

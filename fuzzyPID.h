@@ -9,10 +9,18 @@ extern "C" {
 #include "stdlib.h"
 #include "stdio.h"
 
-enum bool {
-    false = 0,
-    true = 1
-};
+#ifndef bool
+#define bool char
+#endif
+
+#ifndef false
+#define false (char)0
+#endif
+
+#ifndef true
+#define true (char)1
+#endif
+
 
 // Fuzzy quantity fields
 enum quantity_fields {
@@ -139,9 +147,11 @@ float pid_control(float real, float idea, struct PID *pid);
 
 float fuzzy_pid_control(float real, float idea, struct PID *pid);
 
-int pid_motor_pwd_output(float real, float idea, struct PID *pid);
+int direct_control(int zero_value, int offset_value, bool direct);
 
-int fuzzy_pid_motor_pwd_output(float real, float idea, struct PID *pid);
+int pid_motor_pwd_output(float real, float idea, bool direct, struct PID *pid);
+
+int fuzzy_pid_motor_pwd_output(float real, float idea, bool direct, struct PID *pid);
 
 void delete_pid(struct PID *pid);
 
