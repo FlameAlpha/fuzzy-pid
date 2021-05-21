@@ -67,9 +67,7 @@ float sigmf(float x, float a, float c) {
 
 // Trapezoidal membership function
 float trapmf(float x, float a, float b, float c, float d) {
-    if (x <= a)
-        return 0.0f;
-    else if (x >= a && x < b)
+    if (x >= a && x < b)
         return (x - a) / (b - a);
     else if (x >= b && x < c)
         return 1.0f;
@@ -113,44 +111,24 @@ float mf(float x, unsigned int mf_type, int *params) {
 }
 
 // Union operator
-float or(
-        float a,
-        float b,
-        unsigned int type
-) {
-    if (type == 1) {
-// algebraic sum
-        return a + b -
-               a * b;
-    } else if (type == 2) {
-// bounded sum
+float or(float a, float b, unsigned int type) {
+    if (type == 1) { // algebraic sum
+        return a + b - a * b;
+    } else if (type == 2) { // bounded sum
         return fminf(1, a + b);
-    } else {
-// fuzzy union
-        return
-                fmaxf(a, b
-                );
+    } else { // fuzzy union
+        return fmaxf(a, b);
     }
 }
 
 // Intersection operator
-float and(
-        float a,
-        float b,
-        unsigned int type
-) {
-    if (type == 1) {
-// algebraic product
-        return
-                a * b;
-    } else if (type == 2) {
-// bounded product
+float and(float a, float b, unsigned int type) {
+    if (type == 1) { // algebraic product
+        return a * b;
+    } else if (type == 2) { // bounded product
         return fmaxf(0, a + b - 1);
-    } else {
-// fuzzy intersection
-        return
-                fminf(a, b
-                );
+    } else { // fuzzy intersection
+        return fminf(a, b);
     }
 }
 
@@ -170,17 +148,9 @@ float fo(float a, float b, unsigned int type) {
     }
 }
 
-// Center average defuzzifier, only for two input multiple output
-void moc(const float *membership, const unsigned int *output, const unsigned int *count, struct fuzzy *fuzzy_struct) {
+// Mean of centers defuzzifier, only for two input multiple index
+void moc(const float *joint_membership, const unsigned int *index, const unsigned int *count, struct fuzzy *fuzzy_struct) {
 
-    if (count[0] == 0 || count[1] == 0) {
-        for (unsigned int l = 0; l < fuzzy_struct->output_num; ++l) {
-            fuzzy_struct->output[l] = 0;
-        }
-        return;
-    }
-
-    float denominator[count[0] * count[1]];
     float denominator_count = 0;
     float numerator_count[fuzzy_struct->output_num];
     for (unsigned int l = 0; l < fuzzy_struct->output_num; ++l) {
@@ -189,18 +159,16 @@ void moc(const float *membership, const unsigned int *output, const unsigned int
 
     for (int i = 0; i < count[0]; ++i) {
         for (int j = 0; j < count[1]; ++j) {
-            denominator[i * count[1] + j] = membership[i] * membership[count[0] +
-                                                                       j]; // fo(membership[i], membership[count[0] + j], fuzzy_struct->fo_type);
-            denominator_count += denominator[i * count[1] + j];
+            denominator_count += joint_membership[i * count[1] + j];
         }
     }
 
     for (unsigned int k = 0; k < fuzzy_struct->output_num; ++k) {
         for (unsigned int i = 0; i < count[0]; ++i) {
             for (unsigned int j = 0; j < count[1]; ++j) {
-                numerator_count[k] += denominator[i * count[1] + j] *
-                                      fuzzy_struct->rule_base[k * qf_default * qf_default + output[i] * qf_default +
-                                                              output[count[0] + j]];
+                numerator_count[k] += joint_membership[i * count[1] + j] *
+                                      fuzzy_struct->rule_base[k * qf_default * qf_default + index[i] * qf_default +
+                                                              index[count[0] + j]];
             }
         }
     }
@@ -211,40 +179,49 @@ void moc(const float *membership, const unsigned int *output, const unsigned int
     for (unsigned int l = 0; l < fuzzy_struct->output_num; ++l) {
         fuzzy_struct->output[l] = numerator_count[l] / denominator_count;
 #ifdef fuzzy_pid_debug_print
-        printf("%f,%f,%f\n", numerator_count[l], denominator_count, fuzzy_struct->output[l]);
+        printf("%f,%f,%f\n", numerator_count[l], denominator_count, fuzzy_struct->index[l]);
 #endif
     }
 }
 
 // Defuzzifier
-void df(const float *membership, const unsigned int *output, const unsigned int *count, struct fuzzy *fuzzy_struct,
+void df(const float *joint_membership, const unsigned int *output, const unsigned int *count, struct fuzzy *fuzzy_struct,
         int df_type) {
-    moc(membership, output, count, fuzzy_struct);
+    if(df_type == 0)
+        moc(joint_membership, output, count, fuzzy_struct);
+    else {
+        printf("Waring: No such of defuzzifier!\n");
+        moc(joint_membership, output, count, fuzzy_struct);
+    }
 }
 
 void fuzzy_control(float e, float de, struct fuzzy *fuzzy_struct) {
-    float membership[qf_default * 2];
-    unsigned int output[qf_default * 2];
+    float membership[qf_default * 2]; // Store membership
+    unsigned int index[qf_default * 2]; // Store the index of each membership
     unsigned int count[2] = {0, 0};
-    int j = 0;
-    for (int i = 0; i < qf_default; ++i) {
-        float temp = mf(e, fuzzy_struct->mf_type[0], fuzzy_struct->mf_params + 4 * i);
-        if (temp > 1e-4) {
-            membership[j] = temp;
-            output[j++] = i;
-        }
-    }
-    count[0] = j;
 
-    for (int i = 0; i < qf_default; ++i) {
-        float temp = mf(de, fuzzy_struct->mf_type[1], fuzzy_struct->mf_params + 4 * i);
-        if (temp > 1e-4) {
-            membership[j] = temp;
-            output[j++] = i;
+    {
+        int j = 0;
+        for (int i = 0; i < qf_default; ++i) {
+            float temp = mf(e, fuzzy_struct->mf_type[0], fuzzy_struct->mf_params + 4 * i);
+            if (temp > 1e-4) {
+                membership[j] = temp;
+                index[j++] = i;
+            }
         }
-    }
 
-    count[1] = j - count[0];
+        count[0] = j;
+
+        for (int i = 0; i < qf_default; ++i) {
+            float temp = mf(de, fuzzy_struct->mf_type[1], fuzzy_struct->mf_params + 4 * i);
+            if (temp > 1e-4) {
+                membership[j] = temp;
+                index[j++] = i;
+            }
+        }
+
+        count[1] = j - count[0];
+    }
 
 #ifdef fuzzy_pid_debug_print
     printf("membership:\n");
@@ -254,7 +231,7 @@ void fuzzy_control(float e, float de, struct fuzzy *fuzzy_struct) {
 
     printf("index:\n");
     for (unsigned int k = 0; k < j; ++k) {
-        printf("%d\n", output[k]);
+        printf("%d\n", index[k]);
     }
 
     printf("count:\n");
@@ -263,7 +240,23 @@ void fuzzy_control(float e, float de, struct fuzzy *fuzzy_struct) {
     }
 #endif
 
-    df(membership, output, count, fuzzy_struct, 0);
+    if (count[0] == 0 || count[1] == 0) {
+        for (unsigned int l = 0; l < fuzzy_struct->output_num; ++l) {
+            fuzzy_struct->output[l] = 0;
+        }
+        return;
+    }
+
+    // Joint membership
+    float joint_membership[count[0] * count[1]];
+
+    for (int i = 0; i < count[0]; ++i) {
+        for (int j = 0; j < count[1]; ++j) {
+            joint_membership[i * count[1] + j] = fo(membership[i], membership[count[0] + j], fuzzy_struct->fo_type);
+        }
+    }
+
+    df(joint_membership, index, count, fuzzy_struct, 0);
 }
 
 struct PID *raw_fuzzy_pid_init(float kp, float ki, float kd, float integral_limit, float dead_zone,
@@ -494,7 +487,7 @@ struct PID **pid_vector_init(float params[][pid_params_count], unsigned int coun
 }
 
 struct PID **
-fuzzy_vector_pid_init(float params[][pid_params_count], float delta_k, unsigned int mf_type, unsigned int fo_type,
+fuzzy_pid_vector_init(float params[][pid_params_count], float delta_k, unsigned int mf_type, unsigned int fo_type,
                       unsigned int df_type, int *mf_params, int rule_base[][qf_default],
                       unsigned int count) {
     struct PID **pid = (struct PID **) malloc(sizeof(struct PID *) * count);

@@ -139,7 +139,7 @@ struct PID *fuzzy_pid_init(float *params, float delta_k, unsigned int mf_type, u
 struct PID **pid_vector_init(float params[][pid_params_count], unsigned int count);
 
 struct PID **
-fuzzy_vector_pid_init(float params[][pid_params_count], float delta_k, unsigned int mf_type, unsigned int fo_type,
+fuzzy_pid_vector_init(float params[][pid_params_count], float delta_k, unsigned int mf_type, unsigned int fo_type,
                       unsigned int df_type, int *mf_params, int rule_base[][qf_default],
                       unsigned int count);
 

@@ -1,24 +1,3 @@
-## fuzzy-pid
-
-### 介绍
-鉴于控制算法常于嵌入式平台使用，所以使用C语言实现模糊PID控制算法。实现的功能包括但不限于：
-
-- 隶属度函数 Membership function
-    - 高斯隶属度函数 Gaussian membership function
-    - 广义钟形隶属度函数 Generalized bell-shaped membership function
-    - S形隶属度函数 Sigmoidal membership function
-    - 梯形隶属度函数 Trapezoidal membership function
-    - 三角形隶属度函数 Triangular membership function
-    - Z形隶属度函数 Z-shaped membership function
-- 模糊算子 Fuzzy operator
-    - 并算子 Union operator
-    - 交算子 Intersection operator
-    - 平衡算子 Equilibrium operator
-- 中心平均解模糊器 Mean of centers defuzzifier
-
-API使用的示例代码如下：
-
-```c
 #include "fuzzyPID.h"
 
 #define DOF 6
@@ -86,4 +65,3 @@ int main() {
     delete_pid_vector(pid_vector, DOF);
     return 0;
 }
-```
